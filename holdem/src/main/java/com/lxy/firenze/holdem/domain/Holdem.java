@@ -209,8 +209,6 @@ public class Holdem {
                     .filter(i -> i != indexOfCurrentPlayer)
                     .forEach(waitingPlayers::add);
             currentMinBetAmount = allInAmount;
-        } else {
-            pricePool.separate(allInAmount, round, currentMinBetAmount);
         }
         pricePool.allIn(indexOfCurrentPlayer, round, allInAmount);
         playersLastAction[indexOfCurrentPlayer] = PlayerActionType.ALLIN;

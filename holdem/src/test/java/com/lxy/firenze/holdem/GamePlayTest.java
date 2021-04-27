@@ -5,7 +5,7 @@ import com.lxy.firenze.holdem.domain.Player;
 import com.lxy.firenze.holdem.domain.PlayerAction;
 import com.lxy.firenze.holdem.exception.UnsupportActionException;
 import com.lxy.firenze.holdem.service.GameService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Arrays;

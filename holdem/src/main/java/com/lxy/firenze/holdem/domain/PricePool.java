@@ -93,33 +93,27 @@ public class PricePool {
         return amount;
     }
 
-    public void allIn(int player, int round, int amount) {
-        int already = 0;
-        for (int i = 0; i < pools.size(); i++) {
-            InnerPool p = pools.get(i);
-            if (p.round == round) {
-                if (i == pools.size() - 1 || pools.get(i + 1).round > round) {
-                    p.pool[player] = amount - already;
-                } else {
-                    p.pool[player] = p.max();
-                }
-                already += p.pool[player];
-            } else {
+    public void allIn(int player, int round, int allInAmount) {
+        int i = 0;
+        while (allInAmount > 0) {
+            if (i == pools.size()) {
+                InnerPool lastPool = pools.get(i - 1);
+                lastPool.pool[player] = lastPool.pool[player] + allInAmount;
                 break;
             }
-        }
-    }
-
-    public void separate(int amount, int round, int currentMinBetAmount) {
-        int separateAmount = currentMinBetAmount - amount;
-        for (int i = 0; i < pools.size(); i++) {
             InnerPool p = pools.get(i);
             if (p.round == round) {
-                if (i == pools.size() - 1 || pools.get(i + 1).round > round) {
-                    p.reset(p.max() - separateAmount);
+                int max = p.max();
+                if (allInAmount >= max) {
+                    p.pool[player] = max;
+                    allInAmount -= max;
+                    i++;
+                } else {
+                    p.reset(max - allInAmount);
                     InnerPool separatePool = new InnerPool(round, p.pool);
-                    separatePool.reset(separateAmount);
-                    pools.add(separatePool);
+                    separatePool.reset(allInAmount);
+                    separatePool.pool[player] = allInAmount;
+                    pools.add(i, separatePool);
                     break;
                 }
             }

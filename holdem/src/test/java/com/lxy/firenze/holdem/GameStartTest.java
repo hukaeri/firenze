@@ -4,7 +4,7 @@ import com.lxy.firenze.holdem.domain.Holdem;
 import com.lxy.firenze.holdem.domain.Player;
 import com.lxy.firenze.holdem.exception.GameInitialException;
 import com.lxy.firenze.holdem.service.GameService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Arrays;
