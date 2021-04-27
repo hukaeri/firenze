@@ -62,7 +62,7 @@ public class Holdem {
     }
 
     public boolean isRoundOver() {
-        return indexOfCurrentPlayer == null;
+        return indexOfCurrentPlayer == null || quitPlayers.size() == playerCount;
     }
 
     public Player currentActionPlayer() {
