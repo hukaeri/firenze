@@ -16,7 +16,6 @@ public class Holdem {
     private static final int PUBLIC_CARD_COUNT = 5;
     private static final int PLAYER_CARD_COUNT = 2;
     private static final int CONTEST_CARD_COUNT = 5;
-    private static final int ROUNDS = 4;
     private static final int MIN_BET_AMOUNT = 10;
     private static final int RAISE_AMOUNT = 10;
 
@@ -26,7 +25,7 @@ public class Holdem {
     private Poker.Card[][] playerCards;
     private Poker.Card[] publicCards;
     private Poker.Card[][] contestCards;
-    private int round;
+    private Round round;
     private int button;
     private PricePool pricePool;
 
@@ -44,21 +43,20 @@ public class Holdem {
         playerCards = new Poker.Card[playerCount][PLAYER_CARD_COUNT];
         publicCards = new Poker.Card[PUBLIC_CARD_COUNT];
         contestCards = new Poker.Card[playerCount][CONTEST_CARD_COUNT];
-        round = 1;
+        round = Round.PRE_FLOP;
         button = playerCount - 1;
         pricePool = new PricePool(playerCount);
         pricePool.addPricePool(round);
 
         indexOfCurrentPlayer = 0;
         currentMinBetAmount = MIN_BET_AMOUNT;
-        waitingPlayers = new LinkedList<>();
-        IntStream.range(1, playerCount).forEach(i -> waitingPlayers.add(i));
+        waitingPlayers = IntStream.range(1, playerCount).boxed().collect(Collectors.toCollection(LinkedList::new));
         quitPlayers = new ArrayList<>();
         playersLastAction = new PlayerActionType[playerCount];
     }
 
     public boolean isGameOver() {
-        return quitPlayers.size() == playerCount || round == ROUNDS + 1;
+        return quitPlayers.size() == playerCount || round == null;
     }
 
     public boolean isRoundOver() {
@@ -70,43 +68,36 @@ public class Holdem {
     }
 
     public boolean isSmallBlindTurn() {
-        return round == 1 && indexOfCurrentPlayer == 1;
+        return round == Round.PRE_FLOP && indexOfCurrentPlayer == 1;
     }
 
     public boolean isBigBlindTurn() {
-        return round == 1 && indexOfCurrentPlayer == 2;
+        return round == Round.PRE_FLOP && indexOfCurrentPlayer == 2;
     }
 
     public void nextRound() {
         clearPlayerBalance();
-        round++;
-        if (round == ROUNDS + 1) {
+
+        round = round.next();
+        if (round == null) {
             return;
         }
+
         indexOfCurrentPlayer = 0;
-        while ((quitPlayers.contains(indexOfCurrentPlayer)
-                || playersLastAction[indexOfCurrentPlayer] == PlayerActionType.ALLIN)
-                && indexOfCurrentPlayer < playerCount) {
+        while (!isActivePlayer(indexOfCurrentPlayer) && indexOfCurrentPlayer < playerCount) {
             indexOfCurrentPlayer++;
         }
         currentMinBetAmount = MIN_BET_AMOUNT;
         waitingPlayers.clear();
-        IntStream.range(0, playerCount)
-                .filter(i -> playersLastAction[i] != PlayerActionType.ALLIN
-                        && playersLastAction[i] != PlayerActionType.FOLD)
-                .filter(i -> i != indexOfCurrentPlayer)
-                .forEach(waitingPlayers::add);
-        IntStream.range(0, playerCount)
-                .filter(i -> playersLastAction[i] != PlayerActionType.FOLD
-                        && playersLastAction[i] != PlayerActionType.ALLIN)
-                .forEach(i -> playersLastAction[i] = null);
+        makeOthersWait();
+        IntStream.range(0, playerCount).filter(this::isActivePlayer).forEach(i -> playersLastAction[i] = null);
         pricePool.addPricePool(round);
         raiseCount = 0;
     }
 
     private void clearPlayerBalance() {
         for (int i = 0; i < playerCount; i++) {
-            players[i].reduceBalance(pricePool.getPlayerAmountInARound(i, round));
+            players[i].decreaseAmount(pricePool.getPlayerAmountInARound(i, round));
         }
     }
 
@@ -118,32 +109,24 @@ public class Holdem {
         return pricePool.toArray();
     }
 
-    public int getRound() {
+    public Round getRound() {
         return round;
     }
 
-    public void preFlop() {
-        poker.shuffle();
-        for (int i = 0; i < playerCount; i++) {
-            playerCards[i][0] = poker.deal();
-            playerCards[i][1] = poker.deal();
-        }
+    public Poker getPoker() {
+        return poker;
     }
 
-    public void flop() {
-        poker.cut();
-        for (int i = 0; i < 3; i++) {
-            publicCards[i] = poker.deal();
-        }
+    public Integer getPlayerCount() {
+        return playerCount;
     }
 
-    public void turn() {
-        poker.cut();
-        publicCards[3] = poker.deal();
+    public Poker.Card[][] getPlayerCards() {
+        return playerCards;
     }
 
-    public void river() {
-        publicCards[4] = poker.deal();
+    public Poker.Card[] getPublicCards() {
+        return publicCards;
     }
 
     private boolean isFirstInRound() {
@@ -158,15 +141,58 @@ public class Holdem {
         return currentActionPlayer().getBalance() >= currentMinBetAmount;
     }
 
+    private boolean isActivePlayer(int index) {
+        return playersLastAction[index] != PlayerActionType.ALLIN
+                && playersLastAction[index] != PlayerActionType.FOLD;
+    }
+
+    private void makeOthersWait() {
+        IntStream.range(0, playerCount)
+                .filter(this::isActivePlayer)
+                .filter(i -> !waitingPlayers.contains(i))
+                .filter(i -> i != indexOfCurrentPlayer)
+                .forEach(waitingPlayers::add);
+    }
+
     public void onPlayerBet() {
         pricePool.bet(indexOfCurrentPlayer, round, currentMinBetAmount, isFirstInRound());
+
         playersLastAction[indexOfCurrentPlayer] = PlayerActionType.BET;
         indexOfCurrentPlayer = waitingPlayers.poll();
     }
 
     public void onPlayerFold() {
-        playersLastAction[indexOfCurrentPlayer] = PlayerActionType.FOLD;
         quitPlayers.add(indexOfCurrentPlayer);
+
+        playersLastAction[indexOfCurrentPlayer] = PlayerActionType.FOLD;
+        indexOfCurrentPlayer = waitingPlayers.poll();
+    }
+
+    public void onPlayerRaise() {
+        currentMinBetAmount = pricePool.raise(indexOfCurrentPlayer, round, RAISE_AMOUNT);
+        makeOthersWait();
+        raiseCount++;
+
+        playersLastAction[indexOfCurrentPlayer] = PlayerActionType.RAISE;
+        indexOfCurrentPlayer = waitingPlayers.poll();
+    }
+
+    public void onPlayerPass() {
+        waitingPlayers.add(indexOfCurrentPlayer);
+
+        playersLastAction[indexOfCurrentPlayer] = PlayerActionType.PASS;
+        indexOfCurrentPlayer = waitingPlayers.poll();
+    }
+
+    public void onPlayerAllIn() {
+        int allInAmount = players[indexOfCurrentPlayer].getBalance();
+        if (allInAmount >= currentMinBetAmount) {
+            makeOthersWait();
+            currentMinBetAmount = allInAmount;
+        }
+        pricePool.allIn(indexOfCurrentPlayer, round, allInAmount);
+
+        playersLastAction[indexOfCurrentPlayer] = PlayerActionType.ALLIN;
         indexOfCurrentPlayer = waitingPlayers.poll();
     }
 
@@ -176,50 +202,13 @@ public class Holdem {
                 && raiseCount < 3;
     }
 
-    public void onPlayerRaise() {
-        currentMinBetAmount = pricePool.raise(indexOfCurrentPlayer, round, RAISE_AMOUNT);
-        playersLastAction[indexOfCurrentPlayer] = PlayerActionType.RAISE;
-        IntStream.range(0, playerCount)
-                .filter(i -> playersLastAction[i] != PlayerActionType.ALLIN
-                        && playersLastAction[i] != PlayerActionType.FOLD)
-                .filter(i -> !waitingPlayers.contains(i))
-                .filter(i -> i != indexOfCurrentPlayer)
-                .forEach(waitingPlayers::add);
-        indexOfCurrentPlayer = waitingPlayers.poll();
-        raiseCount++;
-    }
-
     public boolean canPlayerPass() {
         return !waitingPlayers.isEmpty() && playersLastAction[indexOfCurrentPlayer] != PlayerActionType.PASS;
     }
 
-    public void onPlayerPass() {
-        waitingPlayers.add(indexOfCurrentPlayer);
-        indexOfCurrentPlayer = waitingPlayers.poll();
-        playersLastAction[indexOfCurrentPlayer] = PlayerActionType.PASS;
-    }
-
-    public void onPlayerAllIn() {
-        int allInAmount = players[indexOfCurrentPlayer].getBalance();
-        if (allInAmount >= currentMinBetAmount) {
-            IntStream.range(0, playerCount)
-                    .filter(i -> playersLastAction[i] != PlayerActionType.ALLIN
-                            && playersLastAction[i] != PlayerActionType.FOLD)
-                    .filter(i -> !waitingPlayers.contains(i))
-                    .filter(i -> i != indexOfCurrentPlayer)
-                    .forEach(waitingPlayers::add);
-            currentMinBetAmount = allInAmount;
-        }
-        pricePool.allIn(indexOfCurrentPlayer, round, allInAmount);
-        playersLastAction[indexOfCurrentPlayer] = PlayerActionType.ALLIN;
-        indexOfCurrentPlayer = waitingPlayers.poll();
-    }
-
     public void share(List<List<Integer>> winners) {
         Map<Integer, Integer> winnerMap = pricePool.winAmount(winners);
-        winnerMap.forEach((k, v) -> {
-            players[k].increaseBalance(v);
-        });
+        winnerMap.forEach((k, v) -> players[k].increaseBalance(v));
     }
 
     public String toString() {

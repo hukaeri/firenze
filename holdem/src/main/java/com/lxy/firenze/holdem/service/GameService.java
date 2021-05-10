@@ -19,6 +19,16 @@ public class GameService {
     private final SpreadService spreadService;
 
     public void play(Holdem holdem) {
+        do{
+            dealService.deal(holdem);
+            do{
+                actionService.action(holdem);
+            }while (!holdem.isRoundOver());
+            holdem.nextRound();
+        }while (!holdem.isGameOver());
+
+
+
         while (!holdem.isGameOver()) {
             dealService.deal(holdem);
             while (!holdem.isRoundOver()) {

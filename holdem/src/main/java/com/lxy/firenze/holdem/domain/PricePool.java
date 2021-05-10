@@ -17,16 +17,16 @@ public class PricePool {
     }
 
     private static class InnerPool {
-        private int round;
+        private Round round;
 
         private int[] pool;
 
-        private InnerPool(int round, int playerCount) {
+        private InnerPool(Round round, int playerCount) {
             this.round = round;
             this.pool = new int[playerCount];
         }
 
-        private InnerPool(int round, int[] pool) {
+        private InnerPool(Round round, int[] pool) {
             this.round = round;
             this.pool = Arrays.copyOf(pool, pool.length);
         }
@@ -52,19 +52,19 @@ public class PricePool {
         }
     }
 
-    public void addPricePool(int round) {
+    public void addPricePool(Round round) {
         pools.add(new InnerPool(round, playerCount));
     }
 
 
-    public int getPlayerAmountInARound(int playerIndex, int round) {
+    public int getPlayerAmountInARound(int playerIndex, Round round) {
         return pools.stream()
                 .filter(p -> p.round == round)
                 .mapToInt(p -> p.pool[playerIndex])
                 .sum();
     }
 
-    public void bet(int player, int round, int amount, boolean isFirst) {
+    public void bet(int player, Round round, int amount, boolean isFirst) {
         if (isFirst) {
             pools.stream().filter(p -> p.round == round)
                     .findFirst()
@@ -75,12 +75,12 @@ public class PricePool {
         }
     }
 
-    public int raise(int player, int round, int raiseAmount) {
+    public int raise(int player, Round round, int raiseAmount) {
         int amount = 0;
         for (int i = 0; i < pools.size(); i++) {
             InnerPool p = pools.get(i);
             if (p.round == round) {
-                if (i == pools.size() - 1 || pools.get(i + 1).round > round) {
+                if (i == pools.size() - 1 || pools.get(i + 1).round.ordinal() > round.ordinal()) {
                     p.pool[player] = p.max() + raiseAmount;
                 } else {
                     p.pool[player] = p.max();
@@ -93,7 +93,7 @@ public class PricePool {
         return amount;
     }
 
-    public void allIn(int player, int round, int allInAmount) {
+    public void allIn(int player, Round round, int allInAmount) {
         int i = 0;
         while (allInAmount > 0) {
             if (i == pools.size()) {
@@ -153,7 +153,7 @@ public class PricePool {
         return array;
     }
 
-    public int[][] toArray(int round) {
+    public int[][] toArray(Round round) {
         return pools.stream().filter(p -> p.round == round)
                 .map(p -> p.pool)
                 .toArray(int[][]::new);

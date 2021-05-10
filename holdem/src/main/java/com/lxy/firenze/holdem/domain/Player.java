@@ -13,7 +13,7 @@ public class Player {
 
     private Integer balance;
 
-    public void reduceBalance(int amount) {
+    public void decreaseAmount(int amount) {
         balance -= amount;
     }
 

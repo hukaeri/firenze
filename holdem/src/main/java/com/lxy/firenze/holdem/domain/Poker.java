@@ -9,6 +9,7 @@ import lombok.ToString;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 public class Poker {
 
@@ -28,11 +29,11 @@ public class Poker {
     private LinkedList<Card> cards;
 
     public Poker() {
-        cards = new LinkedList<>();
-        new Random().ints(0, POKER_SIZE)
+        cards = new Random().ints(0, POKER_SIZE)
                 .distinct()
                 .limit(POKER_SIZE)
-                .forEach(i -> cards.add(new Card(PokerSuit.of(i / 13), i % 13 + 1)));
+                .mapToObj(i -> new Card(PokerSuit.of(i / 13), i % 13 + 1))
+                .collect(Collectors.toCollection(LinkedList::new));
     }
 
     public void shuffle() {
