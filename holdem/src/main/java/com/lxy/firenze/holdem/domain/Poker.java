@@ -24,6 +24,7 @@ public class Poker {
         private PokerSuit suit;
 
         private Integer value;
+
     }
 
     private LinkedList<Card> cards;
