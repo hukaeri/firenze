@@ -4,6 +4,7 @@ import com.lxy.firenze.holdem.constant.PlayerActionType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,6 @@ public class Holdem {
 
     private static final int PUBLIC_CARD_COUNT = 5;
     private static final int PLAYER_CARD_COUNT = 2;
-    private static final int CONTEST_CARD_COUNT = 5;
     private static final int MIN_BET_AMOUNT = 10;
     private static final int RAISE_AMOUNT = 10;
 
@@ -24,7 +24,6 @@ public class Holdem {
     private Player[] players;
     private Poker.Card[][] playerCards;
     private Poker.Card[] publicCards;
-    private Poker.Card[][] contestCards;
     private Round round;
     private int button;
     private PricePool pricePool;
@@ -34,7 +33,7 @@ public class Holdem {
     private Queue<Integer> waitingPlayers;
     private List<Integer> quitPlayers;
     private PlayerActionType[] playersLastAction;
-    private int raiseCount;
+    private Map<Round, List<Integer>> raiseMap;
 
     public Holdem(List<Player> players) {
         poker = new Poker();
@@ -42,7 +41,6 @@ public class Holdem {
         this.players = players.toArray(new Player[playerCount]);
         playerCards = new Poker.Card[playerCount][PLAYER_CARD_COUNT];
         publicCards = new Poker.Card[PUBLIC_CARD_COUNT];
-        contestCards = new Poker.Card[playerCount][CONTEST_CARD_COUNT];
         round = Round.PRE_FLOP;
         button = playerCount - 1;
         pricePool = new PricePool(playerCount);
@@ -53,6 +51,7 @@ public class Holdem {
         waitingPlayers = IntStream.range(1, playerCount).boxed().collect(Collectors.toCollection(LinkedList::new));
         quitPlayers = new ArrayList<>();
         playersLastAction = new PlayerActionType[playerCount];
+        raiseMap = new LinkedHashMap<>();
     }
 
     public boolean isGameOver() {
@@ -75,6 +74,27 @@ public class Holdem {
         return round == Round.PRE_FLOP && indexOfCurrentPlayer == 2;
     }
 
+    private void addRaiseMap(Integer player) {
+        if (raiseMap.containsKey(round)) {
+            raiseMap.get(round).add(player);
+        } else {
+            List<Integer> raisePlayers = new ArrayList<>();
+            raisePlayers.add(player);
+            raiseMap.put(round, raisePlayers);
+        }
+    }
+
+    public Map<Round, List<Integer>> getRaiseMap() {
+        return raiseMap;
+    }
+
+    public List<Integer> finalPlayers() {
+        return IntStream.range(0, playerCount)
+                .filter(this::isActivePlayer)
+                .boxed()
+                .collect(Collectors.toList());
+    }
+
     public void nextRound() {
         clearPlayerBalance();
 
@@ -92,7 +112,6 @@ public class Holdem {
         makeOthersWait();
         IntStream.range(0, playerCount).filter(this::isActivePlayer).forEach(i -> playersLastAction[i] = null);
         pricePool.addPricePool(round);
-        raiseCount = 0;
     }
 
     private void clearPlayerBalance() {
@@ -171,7 +190,7 @@ public class Holdem {
     public void onPlayerRaise() {
         currentMinBetAmount = pricePool.raise(indexOfCurrentPlayer, round, RAISE_AMOUNT);
         makeOthersWait();
-        raiseCount++;
+        addRaiseMap(indexOfCurrentPlayer);
 
         playersLastAction[indexOfCurrentPlayer] = PlayerActionType.RAISE;
         indexOfCurrentPlayer = waitingPlayers.poll();
@@ -199,7 +218,7 @@ public class Holdem {
     public boolean canPlayerRaise() {
         return currentActionPlayer().getBalance() >= currentMinBetAmount
                 && !isFirstInRound()
-                && raiseCount < 3;
+                && (!raiseMap.containsKey(round) || raiseMap.get(round).size() < 3);
     }
 
     public boolean canPlayerPass() {

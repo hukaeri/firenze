@@ -15,28 +15,32 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+
 @Service
 public class SpreadService {
 
     public List<List<Integer>> winners(Holdem holdem) {
-        Spread[] spreads = IntStream.range(0, holdem.getPlayerCount())
-                .mapToObj(i -> holdem.getPlayerCards()[i])
-                .map(playerCards -> spread(playerCards, holdem.getPublicCards()))
-                .toArray(Spread[]::new);
         List<List<Integer>> winners = new ArrayList<>();
-        winners.add(IntStream.range(0, holdem.getPlayerCount())
-                .boxed()
-                .collect(Collectors.groupingBy(i -> spreads[i], Collectors.toList()))
+        holdem.getRaiseMap().values().forEach(c -> {
+            c.addAll(holdem.finalPlayers());
+            winners.add(contest(holdem, c));
+        });
+        winners.add(contest(holdem, holdem.finalPlayers()));
+        return winners;
+    }
+
+    private List<Integer> contest(Holdem holdem, List<Integer> players) {
+        return players.stream()
+                .collect(groupingBy(p -> spread(holdem.getPlayerCards()[p], holdem.getPublicCards()), toList()))
                 .entrySet()
                 .stream()
                 .sorted(Comparator.comparing(Map.Entry::getKey))
                 .map(Map.Entry::getValue)
-                .collect(Collectors.toList())
-                .get(holdem.getPlayerCount() - 1));
-        // TODO all in
-        return winners;
+                .reduce((first, second) -> second)
+                .get();
     }
-
 
     private Spread spread(Poker.Card[] contestCards) {
         int[] dValues = new int[4];
