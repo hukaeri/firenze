@@ -160,4 +160,8 @@ public class PricePool {
                 .toArray(int[][]::new);
     }
 
+    public void removeEmptyPool(Round round) {
+        pools.removeIf(p -> p.round == round && p.max() == 0);
+    }
+
 }

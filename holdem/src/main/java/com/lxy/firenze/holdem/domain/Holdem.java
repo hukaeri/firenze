@@ -101,6 +101,7 @@ public class Holdem {
 
     public void nextRound() {
         clearPlayerBalance();
+        pricePool.removeEmptyPool(round);
 
         round = round.next();
         if (round == null) {
