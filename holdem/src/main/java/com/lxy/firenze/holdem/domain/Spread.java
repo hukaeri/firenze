@@ -151,7 +151,7 @@ public class Spread implements Comparable<Spread> {
         if (this.type == o.type) {
             return this.character - o.getCharacter();
         } else {
-            return this.type.ordinal() - o.getType().ordinal();
+            return o.getType().ordinal() - this.type.ordinal();
         }
     }
 }

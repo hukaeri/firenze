@@ -20,4 +20,8 @@ public class Player {
     public void increaseBalance(int amount) {
         balance += amount;
     }
+
+    public String toString() {
+        return name + ":" + balance;
+    }
 }

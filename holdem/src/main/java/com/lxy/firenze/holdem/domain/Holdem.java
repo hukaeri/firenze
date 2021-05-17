@@ -33,7 +33,7 @@ public class Holdem {
     private Queue<Integer> waitingPlayers;
     private List<Integer> quitPlayers;
     private PlayerActionType[] playersLastAction;
-    private Map<Round, List<Integer>> raiseMap;
+    private Map<Round, List<Integer>> allInMap;
 
     public Holdem(List<Player> players) {
         poker = new Poker();
@@ -51,7 +51,7 @@ public class Holdem {
         waitingPlayers = IntStream.range(1, playerCount).boxed().collect(Collectors.toCollection(LinkedList::new));
         quitPlayers = new ArrayList<>();
         playersLastAction = new PlayerActionType[playerCount];
-        raiseMap = new LinkedHashMap<>();
+        allInMap = new LinkedHashMap<>();
     }
 
     public boolean isGameOver() {
@@ -66,6 +66,10 @@ public class Holdem {
         return players[indexOfCurrentPlayer];
     }
 
+    public int getIndexOfCurrentPlayer() {
+        return indexOfCurrentPlayer;
+    }
+
     public boolean isSmallBlindTurn() {
         return round == Round.PRE_FLOP && indexOfCurrentPlayer == 1;
     }
@@ -74,18 +78,18 @@ public class Holdem {
         return round == Round.PRE_FLOP && indexOfCurrentPlayer == 2;
     }
 
-    private void addRaiseMap(Integer player) {
-        if (raiseMap.containsKey(round)) {
-            raiseMap.get(round).add(player);
+    private void addAllInMap(Integer player) {
+        if (allInMap.containsKey(round)) {
+            allInMap.get(round).add(player);
         } else {
             List<Integer> raisePlayers = new ArrayList<>();
             raisePlayers.add(player);
-            raiseMap.put(round, raisePlayers);
+            allInMap.put(round, raisePlayers);
         }
     }
 
-    public Map<Round, List<Integer>> getRaiseMap() {
-        return raiseMap;
+    public Map<Round, List<Integer>> getAllInMapMap() {
+        return allInMap;
     }
 
     public List<Integer> finalPlayers() {
@@ -190,7 +194,6 @@ public class Holdem {
     public void onPlayerRaise() {
         currentMinBetAmount = pricePool.raise(indexOfCurrentPlayer, round, RAISE_AMOUNT);
         makeOthersWait();
-        addRaiseMap(indexOfCurrentPlayer);
 
         playersLastAction[indexOfCurrentPlayer] = PlayerActionType.RAISE;
         indexOfCurrentPlayer = waitingPlayers.poll();
@@ -210,6 +213,7 @@ public class Holdem {
             currentMinBetAmount = allInAmount;
         }
         pricePool.allIn(indexOfCurrentPlayer, round, allInAmount);
+        addAllInMap(indexOfCurrentPlayer);
 
         playersLastAction[indexOfCurrentPlayer] = PlayerActionType.ALLIN;
         indexOfCurrentPlayer = waitingPlayers.poll();
@@ -217,8 +221,7 @@ public class Holdem {
 
     public boolean canPlayerRaise() {
         return currentActionPlayer().getBalance() >= currentMinBetAmount
-                && !isFirstInRound()
-                && (!raiseMap.containsKey(round) || raiseMap.get(round).size() < 3);
+                && !isFirstInRound();
     }
 
     public boolean canPlayerPass() {
@@ -231,9 +234,9 @@ public class Holdem {
     }
 
     public String toString() {
-        return new StringBuilder().append("当前操作的玩家：").append(players[indexOfCurrentPlayer].getName()).append("\r\t")
-                .append("最小下注金额：").append(currentMinBetAmount).append("\r\t")
-                .append("玩家的操作：").append(playersLastAction[indexOfCurrentPlayer]).append("\r\t")
+        return new StringBuilder().append("当前操作的玩家：").append(players[indexOfCurrentPlayer].getName()).append("\r\n")
+                .append("最小下注金额：").append(currentMinBetAmount).append("\r\n")
+                .append("玩家的操作：").append(playersLastAction[indexOfCurrentPlayer]).append("\r\n")
                 .append("等待操作的玩家：").append(
                         waitingPlayers.stream()
                                 .map(i -> {
@@ -243,12 +246,12 @@ public class Holdem {
                                         return players[i].getName();
                                     }
                                 })
-                                .collect(Collectors.joining(","))).append("\r\t")
+                                .collect(Collectors.joining(","))).append("\r\n")
                 .append("退出的玩家：").append(
                         quitPlayers.stream()
                                 .map(i -> players[i].getName())
-                                .collect(Collectors.joining(","))).append("\r\t")
-                .append("奖池：").append(Arrays.deepToString(pricePool.toArray(round))).append("\r\t")
+                                .collect(Collectors.joining(","))).append("\r\n")
+                .append("奖池：").append(Arrays.deepToString(pricePool.toArray(round))).append("\r\n")
                 .toString();
     }
 

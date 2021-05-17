@@ -86,8 +86,6 @@ public class PricePool {
                     p.pool[player] = p.max();
                 }
                 amount += p.pool[player];
-            } else {
-                break;
             }
         }
         return amount;
@@ -99,6 +97,7 @@ public class PricePool {
             if (i == pools.size()) {
                 InnerPool lastPool = pools.get(i - 1);
                 lastPool.pool[player] = lastPool.pool[player] + allInAmount;
+                pools.add(new InnerPool(round, playerCount));
                 break;
             }
             InnerPool p = pools.get(i);
@@ -116,6 +115,8 @@ public class PricePool {
                     pools.add(i, separatePool);
                     break;
                 }
+            } else {
+                i++;
             }
         }
     }

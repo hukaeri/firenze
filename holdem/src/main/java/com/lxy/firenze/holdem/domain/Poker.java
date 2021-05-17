@@ -4,10 +4,11 @@ import com.lxy.firenze.holdem.constant.PokerSuit;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.ToString;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -18,12 +19,34 @@ public class Poker {
     @AllArgsConstructor
     @Getter
     @EqualsAndHashCode
-    @ToString
     public static class Card {
+
+        private static Map<Integer, String> cardStrMap = new HashMap<>();
+
+        static {
+            cardStrMap.put(1, "2");
+            cardStrMap.put(2, "3");
+            cardStrMap.put(3, "4");
+            cardStrMap.put(4, "5");
+            cardStrMap.put(5, "6");
+            cardStrMap.put(6, "7");
+            cardStrMap.put(7, "8");
+            cardStrMap.put(8, "9");
+            cardStrMap.put(9, "10");
+            cardStrMap.put(10, "J");
+            cardStrMap.put(11, "Q");
+            cardStrMap.put(12, "K");
+            cardStrMap.put(13, "A");
+        }
 
         private PokerSuit suit;
 
         private Integer value;
+
+        @Override
+        public String toString() {
+            return suit + cardStrMap.get(value);
+        }
 
     }
 
