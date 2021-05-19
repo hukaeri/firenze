@@ -1,5 +1,6 @@
 package com.lxy.firenze.holdem.domain;
 
+import com.lxy.firenze.holdem.exception.NoMatchSpreadException;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -12,7 +13,7 @@ import static java.util.stream.Collectors.groupingBy;
 @AllArgsConstructor
 @Getter
 @EqualsAndHashCode
-public class Spread implements Comparable<Spread> {
+public class Face implements Comparable<Face> {
 
     public enum Type {
         STRAIGHT_FLUSH {
@@ -147,11 +148,24 @@ public class Spread implements Comparable<Spread> {
     private Integer character;
 
     @Override
-    public int compareTo(Spread o) {
+    public int compareTo(Face o) {
         if (this.type == o.type) {
             return this.character - o.getCharacter();
         } else {
             return o.getType().ordinal() - this.type.ordinal();
         }
+    }
+
+    public static Face of(Poker.Card... cards) {
+        int[] dValues = new int[4];
+        for (int i = 0; i < 4; i++) {
+            dValues[i] = cards[i + 1].getValue() - cards[i].getValue();
+        }
+        boolean isFlush = Arrays.stream(cards).map(Poker.Card::getSuit).distinct().count() == 1;
+        return Arrays.stream(Face.Type.values())
+                .filter(t -> t.match(dValues, isFlush))
+                .map(t -> new Face(t, t.character(cards)))
+                .findFirst()
+                .orElseThrow(NoMatchSpreadException::new);
     }
 }

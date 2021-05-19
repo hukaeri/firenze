@@ -43,6 +43,16 @@ public class Poker {
 
         private Integer value;
 
+        public Card(PokerSuit suit, String card) {
+            int value = cardStrMap.entrySet().stream()
+                    .filter(e -> e.getValue().equals(card))
+                    .map(e -> e.getKey())
+                    .findFirst()
+                    .get();
+            this.suit = suit;
+            this.value = value;
+        }
+
         @Override
         public String toString() {
             return suit + cardStrMap.get(value);
