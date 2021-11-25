@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+}
+
+group 'com.lxy.firenze.framework'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    compile group: 'io.vertx', name: 'vertx-core', version: '4.1.3'
+    compile group: 'javax.ws.rs', name: 'javax.ws.rs-api', version: '2.1'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.5'
+    compile project(':di')
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
