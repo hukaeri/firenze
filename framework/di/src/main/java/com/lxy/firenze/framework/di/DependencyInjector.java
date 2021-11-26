@@ -42,8 +42,10 @@ public class DependencyInjector {
 
     private void instantiate(Class clazz) {
         try {
-            Object instance = clazz.newInstance();
-            instanceMap.put(clazz, instance);
+            if (!instanceMap.containsKey(clazz)) {
+                instanceMap.put(clazz, clazz.newInstance());
+            }
+            Object instance = instanceMap.get(clazz);
             InjectorUtils.autowire(this, clazz, instance);
         } catch (InstantiationException | IllegalAccessException e) {
             throw new RuntimeException(e);
